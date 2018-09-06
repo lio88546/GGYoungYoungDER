@@ -13,7 +13,7 @@ var serv_io = io.listen(server);// 開啟 Socket.IO 的 listener
 
 //資料庫連結物件
 var connection = mysql.createConnection({
-  host: "https://192.168.30.118/",
+  host: "192.168.30.118",
   user: "root",
   password: "passwords",
   database: "git"
