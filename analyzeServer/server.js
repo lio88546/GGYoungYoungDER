@@ -11,14 +11,15 @@ var con = mysql.createConnection({
 });
 
 con.connect(function(err){
-	if(err)console.log(err);
+    if(err)console.log(err);
+    console.log('aaa');
 });
 
 var server = http.createServer();
 
-server.listen();
+server.listen(8888);
 
 var serv_io = io.listen(server);
 serv_io.sockets.on('connection', function(socket) {
-
+    console.log('connect');
 })
