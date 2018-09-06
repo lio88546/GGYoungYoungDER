@@ -7,13 +7,13 @@ var server = http.createServer(function(request, response){
     console.log('Connection');//印出連接字樣
   });
   
-server.listen(8081);//伺服器port點指定
+server.listen(8080);//伺服器port點指定
   
 var serv_io = io.listen(server);// 開啟 Socket.IO 的 listener
 
 //資料庫連結物件
 var connection = mysql.createConnection({
-  host: "http://192.168.30.118/",
+  host: "https://192.168.30.118/",
   user: "root",
   password: "passwords",
   database: "git"
