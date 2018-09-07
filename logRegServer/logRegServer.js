@@ -7,7 +7,7 @@ var server = http.createServer(function(request, response){
     console.log('Connection');//印出連接字樣
   });
   
-server.listen(8080);//伺服器port點指定
+server.listen(8542);//伺服器port點指定
   
 var serv_io = io.listen(server);// 開啟 Socket.IO 的 listener
 
@@ -16,7 +16,7 @@ var connection = mysql.createConnection({
   host: "192.168.30.118",
   user: "root",
   password: "passwords",
-  database: "git"
+  database: "git",
 });
 
 //連接資料庫
@@ -38,44 +38,78 @@ serv_io.sockets.on('connection', function(socket) {
   //var playerData = {};//玩家資料
 
   //註冊
-  socket.on('regs',function(menberData) {
-    console.log("task : "+menberData.task);
-    /*
-    sql = "INSERT INTO "+
-          "pokergame ( name, psw)"+
-          " VALUES ( '" + menberData.name + "', '"+
-                         menberData.psw + "' ) ;"
-    connection.query(sql, function (err, result) {
+  socket.on('regs',function(regData) {
+    console.log("task : "+regData.task);
+
+    let today = new Date();
+    //查詢是否重複
+    checkSql = "SELECT * FROM member " + 
+               "WHERE id='" + regData.name + "' || name='" + regData.realName + "'";
+    connection.query(checkSql, function(err, result){
       if (err) throw err;
-      socket.emit('regsResult',{name : menberData.name});
+      if(result.length > 0) {
+        socket.emit('regsResult',{response : 'faile'});
+        return;
+      }     
+      //註冊SQL
+      registerSql = "INSERT INTO "+
+            "member ( id, passwords, name, sex, age, country, address, phone, regdate, regtime, record, money)"+
+            " VALUES ( '" + regData.name + "', '"+
+                            regData.psw + "', '"+
+                            regData.realName + "', '"+
+                            regData.sex + "', '"+
+                            regData.age + "', '"+
+                            regData.country + "', '"+
+                            regData.address + "', '"+
+                            regData.phone + "', '"+
+                            today.toLocaleDateString() + "', '"+
+                            today.toLocaleTimeString() + "', '"+
+                            "Register" + "', '"+
+                            10000 + "' ) ;";
+      connection.query(registerSql, function (err, result) {
+        if (err) throw err;
+        socket.emit('regsResult',{response : 'success'});
+        //寫入LOG檔SQL
+        logfileSql = "INSERT INTO "+
+        "log ( date, time, ip, type, note)"+
+        " VALUES ( '" + today.toLocaleDateString() + "', '"+
+                        today.toLocaleTimeString() + "', '"+
+                        socket.request.connection.remoteAddress + "', '"+
+                        "Register" + "', '"+
+                        regData.name + " Register " + "' ) ;";
+        connection.query(logfileSql, function (err, result) {
+          if (err) throw err;
+        });
+      });
+      
     });
-    */
   });
 
   //登入
-  socket.on('login',function(menberData) {
-    console.log("task : "+menberData.task);
-    /*
-    sql = "SELECT * FROM pokergame " + 
-          "WHERE name='" + menberData.name + "' AND" + 
-          " psw='" + menberData.psw + "'";
+  socket.on('login',function(loginData) {
+    console.log("task : "+loginData.task);
+    
+    sql = "SELECT * FROM member " + 
+          "WHERE id='" + loginData.name + "' && passwords='" + loginData.psw + "'";
     connection.query(sql,function(error, result, fields){
       if(result != ""){
         let today = new Date();//取當下Date
-        sql = "UPDATE pokergame SET "+
-              "loginTime = '" + today.getFullYear()+"-"+(today.getMonth()+1)+"-"+today.getDate() + 
-              " " + today.getHours()+":"+today.getMinutes()+":"+today.getSeconds() + "'" +
-              " WHERE " + 
-              "id = " + result[0].id + ";";
-        connection.query(sql,function(error) {
-          if (error) throw error;
-          playerData = result[0];//存放玩家於資料庫之ID
-          socket.emit('logResult',result[0]);
+        //寫入LOG檔SQL
+        logfileSql = "INSERT INTO "+
+        "log ( date, time, ip, type, note)"+
+        " VALUES ( '" + today.toLocaleDateString() + "', '"+
+                        today.toLocaleTimeString() + "', '"+
+                        socket.request.connection.remoteAddress + "', '"+
+                        "Login" + "', '"+
+                        loginData.name + " Register " + "' ) ;";
+        connection.query(logfileSql, function (err, result) {
+          if (err) throw err;
+          socket.emit('logResult',{response : 'success'});
         });
       } else {
-        socket.emit('logResult',{id:-1});
+        socket.emit('logResult',{response : 'faile'});
       }
     });
-    */
+    
   });
 });
