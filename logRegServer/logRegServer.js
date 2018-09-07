@@ -64,7 +64,7 @@ serv_io.sockets.on('connection', function(socket) {
                             regData.phone + "', '"+
                             today.toLocaleDateString() + "', '"+
                             today.toLocaleTimeString() + "', '"+
-                            "Register" + "', '"+
+                            "0/0" + "', '"+
                             10000 + "' ) ;";
       connection.query(registerSql, function (err, result) {
         if (err) throw err;
@@ -91,8 +91,8 @@ serv_io.sockets.on('connection', function(socket) {
     
     sql = "SELECT * FROM member " + 
           "WHERE id='" + loginData.name + "' && passwords='" + loginData.psw + "'";
-    connection.query(sql,function(error, result, fields){
-      if(result != ""){
+    connection.query(sql,function(error, loginResult, fields){
+      if(loginResult != ""){
         let today = new Date();//取當下Date
         //寫入LOG檔SQL
         logfileSql = "INSERT INTO "+
@@ -101,10 +101,11 @@ serv_io.sockets.on('connection', function(socket) {
                         today.toLocaleTimeString() + "', '"+
                         socket.request.connection.remoteAddress + "', '"+
                         "Login" + "', '"+
-                        loginData.name + " Register " + "' ) ;";
-        connection.query(logfileSql, function (err, result) {
+                        loginData.name + " Login " + "' ) ;";
+        connection.query(logfileSql, function (err, logResult) {
           if (err) throw err;
           socket.emit('logResult',{response : 'success'});
+          socket.emit('memberData',{loginResult});
         });
       } else {
         socket.emit('logResult',{response : 'faile'});
