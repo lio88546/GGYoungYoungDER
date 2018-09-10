@@ -158,7 +158,7 @@ export default {
         this.member.hint = this.loginData.name+"登入成功，現在將導向到遊戲頁面";
         setTimeout( () => {
           this.member.hint = "";
-          this.member.act = "login";
+          this.$router.push({ path: `/game` });
           //this.member.is_member = true;
         },3000);
       } else {

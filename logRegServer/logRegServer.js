@@ -35,7 +35,7 @@ serv_io.sockets.on('connection', function(socket) {
     console.log(msg.condition);
   })
   
-  //var playerData = {};//玩家資料
+  var playerData = {};//存放玩家資料用
 
   //註冊
   socket.on('regs',function(regData) {
@@ -43,7 +43,7 @@ serv_io.sockets.on('connection', function(socket) {
 
     let today = new Date();
     //查詢是否重複
-    checkSql = "SELECT * FROM member " + 
+    let checkSql = "SELECT * FROM member " + 
                "WHERE id='" + regData.name + "' || name='" + regData.realName + "'";
     connection.query(checkSql, function(err, result){
       if (err) throw err;
@@ -52,7 +52,7 @@ serv_io.sockets.on('connection', function(socket) {
         return;
       }     
       //註冊SQL
-      registerSql = "INSERT INTO "+
+      let registerSql = "INSERT INTO "+
             "member ( id, passwords, name, sex, age, country, address, phone, regdate, regtime, record, money)"+
             " VALUES ( '" + regData.name + "', '"+
                             regData.psw + "', '"+
@@ -70,7 +70,7 @@ serv_io.sockets.on('connection', function(socket) {
         if (err) throw err;
         socket.emit('regsResult',{response : 'success'});
         //寫入LOG檔SQL
-        logfileSql = "INSERT INTO "+
+        let logfileSql = "INSERT INTO "+
         "log ( date, time, ip, type, note)"+
         " VALUES ( '" + today.toLocaleDateString() + "', '"+
                         today.toLocaleTimeString() + "', '"+
@@ -89,10 +89,11 @@ serv_io.sockets.on('connection', function(socket) {
   socket.on('login',function(loginData) {
     console.log("task : "+loginData.task);
     
-    sql = "SELECT * FROM member " + 
+    let sql = "SELECT * FROM member " + 
           "WHERE id='" + loginData.name + "' && passwords='" + loginData.psw + "'";
     connection.query(sql,function(error, loginResult, fields){
       if(loginResult != ""){
+        let options = {year:'numeric', month: '2-digit', day: '2-digit' };
         let today = new Date();//取當下Date
         //寫入LOG檔SQL
         logfileSql = "INSERT INTO "+
@@ -104,8 +105,10 @@ serv_io.sockets.on('connection', function(socket) {
                         loginData.name + " Login " + "' ) ;";
         connection.query(logfileSql, function (err, logResult) {
           if (err) throw err;
+          loginResult[0].regdate = loginResult[0].regdate.toLocaleDateString('ch',options);
           socket.emit('logResult',{response : 'success'});
-          socket.emit('memberData',{loginResult});
+          socket.emit('loginMemberData',{loginResult});//回傳登入成功的會員資料
+          playerData = loginResult[0];//存放會員資料
         });
       } else {
         socket.emit('logResult',{response : 'faile'});
@@ -113,4 +116,62 @@ serv_io.sockets.on('connection', function(socket) {
     });
     
   });
+  
+  
+  //遊戲後台
+  //接賭注要求
+  socket.on('bet',function(bet){
+    console.log("task : bet");
+    let today = new Date();//取當下Date
+    let record = playerData.record.split('/');
+    let logNote = {
+      'betMoney' : bet.betMoney,
+      'originalMoney' : playerData.money,
+      'lastMoney' : 0,
+      'result' : ''
+    };
+    let ran =  Math.floor(Math.random()*2)
+    switch(ran){
+      case 0:
+        playerData.money += bet.betMoney;
+        record[0]++;
+        logNote.lastMoney = playerData.money;
+        logNote.result = 'win';
+        break;
+      case 1:
+        playerData.money -= bet.betMoney;
+        record[1]++;
+        logNote.lastMoney = playerData.money;
+        logNote.result = 'lose';
+        break;
+    }
+    playerData.record = record[0] + '/' + record[1];
+    logNote = logNote.betMoney + '/' + logNote.originalMoney + '/' + logNote.lastMoney + '/' + logNote.result;
+    
+
+    //更新玩家資料SQL
+    let UpdateSql = "UPDATE member" + 
+                    " set money='" + playerData.money +  "' ," +
+                    " record='" + playerData.record + "'"+ 
+                    " WHERE id ='" + playerData.id + "'";
+    connection.query(UpdateSql, function (err, result) {
+    if (err) throw err;
+    });
+
+    //寫入LOG檔SQL
+    let logfileSql = "INSERT INTO "+
+    "log ( date, time, ip, type, note)"+
+    " VALUES ( '" + today.toLocaleDateString() + "', '"+
+                    today.toLocaleTimeString() + "', '"+
+                    socket.request.connection.remoteAddress + "', '"+
+                    "Bet" + "', '"+
+                    logNote +  "' ) ;";
+    connection.query(logfileSql, function (err, logResult) {
+      if (err) throw err;
+      socket.emit('betResult',{playerData});
+    });
+    
+  });
+
+
 });

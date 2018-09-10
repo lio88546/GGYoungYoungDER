@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <router-view :socket="socket"></router-view>
+    <router-view :socket="socket" :memberData="memberData"></router-view>
   </div>
 </template>
 
@@ -16,8 +16,8 @@ export default {
     }
   },
   mounted() {
-    this.socket.on('memberData', function(data){
-      console.log(data);
+    this.socket.on('loginMemberData', (data) => {//監聽登入成功的會員資料
+      this.memberData = Object.assign(this.memberData,data.loginResult);
     });
   },
 }
