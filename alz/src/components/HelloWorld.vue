@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-tabs v-model="activeName" @tab-click="handleClick">
+    <el-tabs v-model="activeName" @tab-click="handleClick()">
       <el-tab-pane label="年齡統計" name="first"></el-tab-pane>
       <el-tab-pane label="性別統計" name="second"></el-tab-pane>
       <el-tab-pane label="註冊人數" name="third"></el-tab-pane>
@@ -13,20 +13,12 @@
 <script>
 
 var socket = io.connect('192.168.30.116:8888');
-export default {
+export default{
   data () {
     return {
       chartData: {
         columns: [],
-        rows: [
-          
-        /* { '性別':'男', '國家':'台灣' , '年齡':20 , '日期':'2018-01-01'},
-          { '性別':'女', '國家':'俄羅斯' , '年齡':18 , '日期':'2018-01-02'},
-          { '性別':'男', '國家':'台灣' , '年齡':16 , '日期':'2018-01-03'} */
-          /* {'年份':'2017' , '人數':'1000'},
-          {'年份':'2018' , '人數':'2000'},
-          {'年份':'2019' , '人數':'1500'} */
-        ]
+        rows: []
       },
       activeName : 'first',
       chartSettings : {
@@ -35,57 +27,82 @@ export default {
       extend : {
 
       },
-      color : ['#5ab1ef','#fa6e86','#19d4ae','#ffb980','#0067a6','#c4b4e4']
+      color : ['#5ab1ef','#fa6e86','#19d4ae','#ffb980','#0067a6','#c4b4e4'],
+      showData : [],
+      count : {
+        countage : [],
+        countsex : [],
+        countcountry : [],
+        counttime : []
+      }
     }
+  },
+  mounted () {
+    socket.on('getData',(data)=>{
+      this.showData = data;
+      //計算人數
+      let countage = {};
+      let countsex = {};
+      let countcountry = {};
+      let counttime = {};
+      
+      for(var value of this.showData){
+        if(countage[value.age])
+          countage[value.age]++;
+        else
+          countage[value.age] = 1;
+        if(countsex[value.sex])
+          countsex[value.sex]++;
+        else
+          countsex[value.sex] = 1;
+        if(countcountry[value.country])
+          countcountry[value.country]++;
+        else
+          countcountry[value.country] = 1;
+        let time = new Date(value.regtime).toLocaleDateString();
+        if(counttime[time])
+          counttime[time]++;
+        else
+          counttime[time] = 1;
+      }
+      this.count.countage = countage;
+      this.count.countsex = countsex;
+      this.count.countcountry = countcountry;
+      this.count.counttime = counttime;
+      console.log(this.count);
+    })
   },
   methods : {
     handleClick(){
-      if(this.activeName=='first'){
-        this.chartSettings['type'] = 'pie';
-        this.chartData['columns'] = ['年齡', '人數'];
-        this.chartData['rows'] = [
-          {'年齡':'19歲以下' , '人數':3859},
-          {'年齡':'20歲-24歲' , '人數':4876},
-          {'年齡':'25歲-29歲' , '人數':9487},
-          {'年齡':'30歲-34歲' , '人數':6666},
-          {'年齡':'35歲-39歲' , '人數':2345},
-          {'年齡':'40歲以上' , '人數':1314}];
+      switch(this.activeName){
+        case "first":
+          this.set('pie',['年齡', '人數'],this.count.countage);
+          break;
+        case "second":
+          this.set('pie',['性別', '人數'],this.count.countsex);
+          break;
+        case "third":
+          this.set('line',['日期','人數'],this.count.counttime);
+          break;
+        case "fourth":
+          this.set('histogram',['國家','人數'],this.count.countcountry);
+          break;
       }
-      else if(this.activeName=='second'){
-        this.chartSettings['type'] = 'pie';
-        this.chartData['columns'] = ['性別', '人數'];
-        this.chartData['rows'] = [
-          {'性別':'男' , '人數':38590},
-          {'性別':'女' , '人數':13140}];
-      }
-
-      else if(this.activeName=='third'){
-        this.chartSettings['type'] = 'line';
-        this.chartData['columns'] = ['年月','人數'];
-        this.chartData['rows'] = [
-          {'年月':'2017-06','人數':1894},
-          {'年月':'2017-07','人數':4381},
-          {'年月':'2017-08','人數':3051},
-          {'年月':'2017-09','人數':1032},
-          {'年月':'2017-10','人數':2031},
-          {'年月':'2017-11','人數':1203}
-        ]
-      }
-
-      else if(this.activeName=='fourth'){
-        this.chartSettings['type'] = 'histogram';
-        this.chartData['columns'] = ['國家','人數'];
-        this.chartData['rows'] = [
-          {'國家':'台灣','人數':5487},
-          {'國家':'中國','人數':9487},
-          {'國家':'日本','人數':6666},
-          {'國家':'韓國','人數':7777},
-          {'國家':'泰國','人數':4444}
-        ]
+    },
+    set(type,columns,rows){
+      this.chartSettings['type'] = type;
+      this.chartData['columns'] = columns;
+      this.chartData['rows'] = [];
+      for(var key in rows){
+        var show = key;
+        if(columns[0]=='年齡')  //顯示文字
+          show += '歲';
+        this.chartData['rows'].push({[columns[0]]:show,[columns[1]]:rows[key]});
       }
     }
   }
 }
+
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
