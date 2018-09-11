@@ -11,7 +11,7 @@ export default {
   data(){
     return {
       //與伺服器建立連結
-      socket : io.connect("http://192.168.30.117:8542"),
+      socket : io.connect("http://192.168.30.118:8542"),
       memberData:{}
     }
   },
